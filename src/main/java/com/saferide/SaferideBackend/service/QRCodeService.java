@@ -1,4 +1,4 @@
-package com.saferide.saferide_backend.service;
+package com.saferide.SaferideBackend.service;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.j2se.MatrixToImageWriter;

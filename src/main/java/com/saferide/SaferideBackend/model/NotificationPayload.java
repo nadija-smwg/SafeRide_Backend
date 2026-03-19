@@ -1,4 +1,4 @@
-package com.saferide.saferide_backend.model;
+package com.saferide.SaferideBackend.model;
 
 import java.time.LocalDateTime;
 

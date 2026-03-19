@@ -1,12 +1,14 @@
-package com.saferide.saferide_backend.model;
+package com.saferide.SaferideBackend.model;
 
-import java.time.LocalDateTime;
+//Use java.util.Date for Firestore compatibility.Firestore does not natively support java.time.LocalDateTime
+//When AttendanceService calls .set(record), Firestore looks for getScanTime().
+import java.util.Date;
 
 public class AttendanceRecord {
     private String recordId;
     private String studentId;
     private String status;
-    private LocalDateTime scanTime;
+    private Date scanTime;
 
     public AttendanceRecord() {}
 
@@ -14,7 +16,7 @@ public class AttendanceRecord {
         this.recordId = recordId;
         this.studentId = studentId;
         this.status = status;
-        this.scanTime = LocalDateTime.now();
+        this.scanTime = new Date ();
     }
 
     public String getRecordId() { return recordId; }
@@ -26,6 +28,6 @@ public class AttendanceRecord {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
-    public LocalDateTime getScanTime() { return scanTime; }
-    public void setScanTime(LocalDateTime scanTime) { this.scanTime = scanTime; }
+    public Date getScanTime() { return scanTime; }
+    public void setScanTime(Date scanTime) { this.scanTime = scanTime; }
 }

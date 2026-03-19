@@ -1,11 +1,11 @@
-package com.saferide.saferide_backend.service;
+package com.saferide.SaferideBackend.service;
 
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.firebase.cloud.FirestoreClient;
-import com.saferide.saferide_backend.model.Student;
+import com.saferide.SaferideBackend.model.Student;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.ExecutionException;

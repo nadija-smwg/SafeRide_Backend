@@ -1,11 +1,11 @@
-package com.saferide.saferide_backend.controller;
+package com.saferide.SaferideBackend.controller;
 
-import com.saferide.saferide_backend.model.AttendanceRecord;
-import com.saferide.saferide_backend.model.Student;
-import com.saferide.saferide_backend.service.AttendanceService;
-import com.saferide.saferide_backend.service.NotificationService;
-import com.saferide.saferide_backend.service.QRCodeService;
-import com.saferide.saferide_backend.service.StudentService;
+import com.saferide.SaferideBackend.model.AttendanceRecord;
+import com.saferide.SaferideBackend.model.Student;
+import com.saferide.SaferideBackend.service.AttendanceService;
+import com.saferide.SaferideBackend.service.NotificationService;
+import com.saferide.SaferideBackend.service.QRCodeService;
+import com.saferide.SaferideBackend.service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

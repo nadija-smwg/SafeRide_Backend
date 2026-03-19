@@ -1,4 +1,4 @@
-package com.saferide.saferide_backend.model;
+package com.saferide.SaferideBackend.model;
 
 public class Student {
     private String studentId;
@@ -8,7 +8,9 @@ public class Student {
     private String emergencyContact;
     private String parentEmail;
 
-    // Default constructor is crucial for Firebase and JSON parsing!
+    //Default constructor is crucial for Firebase and JSON parsing!
+    //Firebase / Spring / JSON libraries need this to create objects automatically
+    //Without this your app will crash when reading data
     public Student() {}
 
     public Student(String studentId, String studentName, String homeAddress,

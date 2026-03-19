@@ -1,6 +1,6 @@
-package com.saferide.saferide_backend.service;
+package com.saferide.SaferideBackend.service;
 
-import com.saferide.saferide_backend.model.Student;
+import com.saferide.SaferideBackend.model.Student;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
