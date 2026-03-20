@@ -14,11 +14,12 @@ public class FirebaseConfig {
     @PostConstruct
     public void initialize() {
         try {
-            // Load the service account private key file
+            // Load the service account key from the classpath (src/main/resources)
             InputStream serviceAccount = getClass().getClassLoader().getResourceAsStream("serviceAccountKey.json");
 
             if (serviceAccount == null) {
-                System.err.println("WARNING: serviceAccountKey.json not found in src/main/resources. Firebase will NOT initialize.");
+                System.err.println("Firebase: serviceAccountKey.json not found in src/main/resources!");
+                System.err.println("Please follow the guide to download it from the Firebase Console.");
                 return;
             }
 
@@ -28,10 +29,11 @@ public class FirebaseConfig {
 
             if (FirebaseApp.getApps().isEmpty()) {
                 FirebaseApp.initializeApp(options);
-                System.out.println("Firebase Application has been initialized successfully!");
+                System.out.println("Firebase initialized successfully!");
             }
         } catch (Exception e) {
             System.err.println("Error initializing Firebase: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }

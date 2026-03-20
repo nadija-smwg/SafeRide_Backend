@@ -7,6 +7,7 @@ public class Student {
     private String schoolAddress;
     private String emergencyContact;
     private String parentEmail;
+    private String parentFcmToken;
 
     //Default constructor is crucial for Firebase and JSON parsing!
     //Firebase / Spring / JSON libraries need this to create objects automatically
@@ -14,13 +15,14 @@ public class Student {
     public Student() {}
 
     public Student(String studentId, String studentName, String homeAddress,
-                   String schoolAddress, String emergencyContact, String parentEmail) {
+                   String schoolAddress, String emergencyContact, String parentEmail, String parentFcmToken) {
         this.studentId = studentId;
         this.studentName = studentName;
         this.homeAddress = homeAddress;
         this.schoolAddress = schoolAddress;
         this.emergencyContact = emergencyContact;
         this.parentEmail = parentEmail;
+        this.parentFcmToken = parentFcmToken;
     }
 
     public String getStudentId() { return studentId; }
@@ -40,4 +42,7 @@ public class Student {
 
     public String getParentEmail() { return parentEmail; }
     public void setParentEmail(String parentEmail) { this.parentEmail = parentEmail; }
+
+    public String getParentFcmToken() { return parentFcmToken; }
+    public void setParentFcmToken(String parentFcmToken) { this.parentFcmToken = parentFcmToken; }
 }
