@@ -17,16 +17,16 @@ public class QRCodeService {
      */
     public String generateQRCodeBase64(String studentId) {
         try {
-            QRCodeWriter qrCodeWriter = new QRCodeWriter();
-            BitMatrix bitMatrix = qrCodeWriter.encode(studentId, BarcodeFormat.QR_CODE, 250, 250);
+            QRCodeWriter qrCodeWriter = new QRCodeWriter(); //ZXing library tool that generates QR codes
+            BitMatrix bitMatrix = qrCodeWriter.encode(studentId, BarcodeFormat.QR_CODE, 250, 250); //encode studentId into QR matrix
 
-            ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
-            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutputStream);
-            byte[] pngData = pngOutputStream.toByteArray();
+            ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream(); //create output stream,instead of saving image to file,store it in memory (RAM/memory container)
+            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutputStream); //convert matrix into a PNG image
+            byte[] pngData = pngOutputStream.toByteArray(); //Extracts raw image data(the actual QR image)
 
-            // Return Base64 encoded image string
+            // Return Base64 encoded image string(convert to text string/easy to send via API,sotre in DB,atttach in email)
             return Base64.getEncoder().encodeToString(pngData);
-        } catch (Exception e) {
+        } catch (Exception e) { //encoding, memory issues(throws runtime error and stops execution safely)
             throw new RuntimeException("Error generating QR code", e);
         }
     }

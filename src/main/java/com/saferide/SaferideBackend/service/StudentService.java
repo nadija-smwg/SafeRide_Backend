@@ -12,25 +12,27 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 @Service
-public class StudentService {
+public class StudentService { //for all student database operations
 
     private static final String COLLECTION_NAME = "students";
 
-    // ─── SAVE (Add new student) ─────────────────────────────────────────────
+    // ─── SAVE (Add new student to DB) ─────────────────────────────────────────────
     public String saveStudent(Student student) {
         // Auto-generate a unique student ID if not provided
         if (student.getStudentId() == null || student.getStudentId().isEmpty()) {
-            student.setStudentId("STU-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+            student.setStudentId("STU-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase()); //UUID - a1b2c3d4e5f6,Final - STU-A1B2C3D4
         }
 
-        Firestore db = FirestoreClient.getFirestore();
-        String studentId = java.util.Objects.requireNonNull(student.getStudentId(), "Student ID must not be null");
+        Firestore db = FirestoreClient.getFirestore(); //connect to Firebase
+        String studentId = java.util.Objects.requireNonNull(student.getStudentId(), "Student ID must not be null"); //ensure ID not null,safety check
+        //go to the collection,create doc with ID and store entire student obj
         ApiFuture<WriteResult> future = db.collection(COLLECTION_NAME)
                 .document(studentId)
                 .set(student);
         try {
+            //wait until DB operation finishes
             future.get();
-            return student.getStudentId(); // return the new student ID
+            return student.getStudentId(); // return the new student ID(for QR generation and API response)
         } catch (InterruptedException | ExecutionException e) {
             System.err.println("Error saving student: " + e.getMessage());
             return null;
@@ -40,13 +42,13 @@ public class StudentService {
     // ─── GET by ID ──────────────────────────────────────────────────────────
     public Student getStudentById(String studentId) {
         Firestore db = FirestoreClient.getFirestore();
-        String safeStudentId = java.util.Objects.requireNonNull(studentId, "studentId must not be null");
-        DocumentReference docRef = db.collection(COLLECTION_NAME).document(safeStudentId);
-        ApiFuture<DocumentSnapshot> future = docRef.get();
+        String safeStudentId = java.util.Objects.requireNonNull(studentId, "studentId must not be null"); //validate ID
+        DocumentReference docRef = db.collection(COLLECTION_NAME).document(safeStudentId); //reference document
+        ApiFuture<DocumentSnapshot> future = docRef.get(); //request to fetch doc/data, Firestore does not return data immediately
         try {
-            DocumentSnapshot document = future.get();
+            DocumentSnapshot document = future.get(); //wait and fetch data
             if (document.exists()) {
-                return document.toObject(Student.class);
+                return document.toObject(Student.class); //convert to object(firestore to JSON to student obj)
             } else {
                 return null;
             }
@@ -62,9 +64,9 @@ public class StudentService {
         ApiFuture<QuerySnapshot> future = db.collection(COLLECTION_NAME).get();
         List<Student> students = new ArrayList<>();
         try {
-            List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+            List<QueryDocumentSnapshot> documents = future.get().getDocuments(); //extract documents
             for (QueryDocumentSnapshot doc : documents) {
-                students.add(doc.toObject(Student.class));
+                students.add(doc.toObject(Student.class)); //convert each doc to object
             }
         } catch (InterruptedException | ExecutionException e) {
             System.err.println("Error fetching all students: " + e.getMessage());
@@ -72,11 +74,11 @@ public class StudentService {
         return students;
     }
 
-    // ─── DELETE student ─────────────────────────────────────────────────────
+    // ─── DELETE student from DB ─────────────────────────────────────────────────────
     public String deleteStudent(String studentId) {
         Firestore db = FirestoreClient.getFirestore();
         String safeStudentId = java.util.Objects.requireNonNull(studentId, "studentId must not be null");
-        ApiFuture<WriteResult> future = db.collection(COLLECTION_NAME).document(safeStudentId).delete();
+        ApiFuture<WriteResult> future = db.collection(COLLECTION_NAME).document(safeStudentId).delete(); //delete doc
         try {
             future.get();
             return "Student " + studentId + " deleted successfully.";
@@ -86,3 +88,12 @@ public class StudentService {
         }
     }
 }
+//documentsnapshot
+//students
+// ├── STU-1234
+//      name: "Kamal"
+//      email: "parent@gmail.com"
+
+// ├── STU-XY98KL76
+
+//DB logics only

@@ -18,7 +18,8 @@ import java.util.Base64;
 @Service
 public class NotificationService {
 
-    @Autowired(required = false) // required=false so app starts even if email is not configured yet
+    //If SMTP is set,emails work
+    @Autowired(required = false) //Spring injects email service,required=false so app starts even if email is not configured yet
     private JavaMailSender mailSender;
 
     // ─── Pickup Notification ────────────────────────────────────────────────
@@ -27,10 +28,10 @@ public class NotificationService {
         String body = "Hello,\n\n" + student.getStudentName() +
                 " has boarded the bus safely at " + LocalDateTime.now() + ".\n\nSafeRide System";
         
-        // Email
+        //send Email
         sendSimpleEmail(student.getParentEmail(), subject, body);
 
-        // Push Notification
+        //send Push Notification
         if (student.getParentFcmToken() != null && !student.getParentFcmToken().isEmpty()) {
             sendPushNotification(student.getParentFcmToken(), subject, body);
         }
@@ -54,13 +55,14 @@ public class NotificationService {
     // ─── QR Code Email (sent when student is registered) ───────────────────
     public void sendQRCodeToParent(Student student, String qrCodeBase64) {
         System.out.println("Preparing QR code email for: " + student.getParentEmail());
-
+        //prevents crash if SMTP not set
         if (mailSender == null) {
             System.out.println("MailSender not configured. Skipping QR email.");
             return;
         }
 
         try {
+            //create MIME email(supports for text,HTML,attachments and images)
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
 
@@ -76,10 +78,10 @@ public class NotificationService {
             );
 
             // Attach QR code image
-            byte[] qrBytes = Base64.getDecoder().decode(qrCodeBase64);
+            byte[] qrBytes = Base64.getDecoder().decode(qrCodeBase64); //Convert Base64 to image bytes...qrCodeBase64-String representation of the QR image(encoded data)
             helper.addAttachment(
                 student.getStudentName().replace(" ", "_") + "_QRCode.png",
-                new ByteArrayDataSource(qrBytes, "image/png")
+                new ByteArrayDataSource(qrBytes, "image/png") //file content
             );
 
             mailSender.send(mimeMessage);
@@ -93,7 +95,7 @@ public class NotificationService {
 
     // ─── Firebase Push Notification (FCM) ───────────────────────────────────
     public void sendPushNotification(String token, String title, String body) {
-        System.out.println("Sending Push Notification to: " + token);
+        System.out.println("Sending Push Notification to: " + token); //helps to check if method is called and debug token issues (prints in console)
 
         try {
             Message message = Message.builder()
@@ -102,12 +104,12 @@ public class NotificationService {
                             .setTitle(title)
                             .setBody(body)
                             .build())
-                    .build();
+                    .build(); //start building a Firebase message to specific phone
 
-            String response = FirebaseMessaging.getInstance().send(message);
+            String response = FirebaseMessaging.getInstance().send(message); //Returns response ID,FB sends notification to device
             System.out.println("Firebase push notification sent: " + response);
 
-        } catch (Exception e) {
+        } catch (Exception e) { //invalid token,network issue,FB error
             System.err.println("Failed to send Firebase push notification: " + e.getMessage());
         }
     }
@@ -118,7 +120,7 @@ public class NotificationService {
 
         if (mailSender == null) {
             System.out.println("MailSender not configured. Skipping email.");
-            System.out.println("Message: " + text);
+            System.out.println("Message: " + text); //prevents crash,still  shows msg in console
             return;
         }
 

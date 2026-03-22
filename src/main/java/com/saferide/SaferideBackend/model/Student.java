@@ -10,10 +10,12 @@ public class Student {
     private String parentFcmToken;
 
     //Default constructor is crucial for Firebase and JSON parsing!
-    //Firebase / Spring / JSON libraries need this to create objects automatically
-    //Without this your app will crash when reading data
+    //Firebase / Spring / JSON libraries,frameworks like this need this to create objects automatically
+    //Without this your app will crash when reading data and parsing JSON API requests
     public Student() {}
 
+    //allow to create objs manually
+    //creating student before saving to DB
     public Student(String studentId, String studentName, String homeAddress,
                    String schoolAddress, String emergencyContact, String parentEmail, String parentFcmToken) {
         this.studentId = studentId;
@@ -22,7 +24,7 @@ public class Student {
         this.schoolAddress = schoolAddress;
         this.emergencyContact = emergencyContact;
         this.parentEmail = parentEmail;
-        this.parentFcmToken = parentFcmToken;
+        this.parentFcmToken = parentFcmToken; //for push notifications ( FB cloud messaging)
     }
 
     public String getStudentId() { return studentId; }
@@ -46,3 +48,6 @@ public class Student {
     public String getParentFcmToken() { return parentFcmToken; }
     public void setParentFcmToken(String parentFcmToken) { this.parentFcmToken = parentFcmToken; }
 }
+
+//QR code contains studentID, backend receives it,fetch student from DB and hold data
+

@@ -5,7 +5,7 @@ package com.saferide.SaferideBackend.model;
 import java.util.Date;
 
 public class AttendanceRecord {
-    private String recordId;
+    private String recordId; //auto-generated
     private String studentId;
     private String status;
     private Date scanTime;
@@ -16,7 +16,7 @@ public class AttendanceRecord {
         this.recordId = recordId;
         this.studentId = studentId;
         this.status = status;
-        this.scanTime = new Date ();
+        this.scanTime = new Date (); //more reliable.backend controls time
     }
 
     public String getRecordId() { return recordId; }
@@ -31,3 +31,5 @@ public class AttendanceRecord {
     public Date getScanTime() { return scanTime; }
     public void setScanTime(Date scanTime) { this.scanTime = scanTime; }
 }
+
+//Every time a student scans a QR code,AttendanceRecord is created

@@ -7,7 +7,7 @@ public class NotificationPayload {
     private String parentEmail;
     private String subject;
     private String studentName;
-    private String studentId;
+    private String studentId;//link with records
     private LocalDateTime timestamp;
 
     public NotificationPayload() {}
@@ -22,6 +22,7 @@ public class NotificationPayload {
         this.timestamp = LocalDateTime.now();
     }
 
+    //Firestore / Spring / JSON frameworks rely on these methods to map object fields.
     public String getAlertType() { return alertType; }
     public void setAlertType(String alertType) { this.alertType = alertType; }
 
@@ -40,3 +41,5 @@ public class NotificationPayload {
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
 }
+
+//oes not interact with Firestore or QR scans directly; it’s only used for sending notifications.it’s just a message object.
