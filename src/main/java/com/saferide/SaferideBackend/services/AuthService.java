@@ -20,7 +20,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
 @Service
 public class AuthService {
@@ -36,8 +35,11 @@ public class AuthService {
 
     private final WebClient webClient = WebClient.create();
 
-    public AuthResponse register(RegisterRequest request)
-            throws FirebaseAuthException, ExecutionException, InterruptedException {
+    public AuthResponse register(RegisterRequest request) throws Exception {
+        if (request.getPassword() == null || !request.getPassword().equals(request.getConfirmPassword())) {
+            throw new Exception("Passwords do not match.");
+        }
+
         // Create user in Firebase Auth
         UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
                 .setEmail(request.getEmail())
@@ -46,11 +48,42 @@ public class AuthService {
         UserRecord userRecord = FirebaseAuth.getInstance().createUser(createRequest);
         String uid = userRecord.getUid();
 
-        // Save role in Firestore
+        // Save role in Firestore for main users table
         Firestore db = FirestoreClient.getFirestore();
         User user = new User(uid, request.getUsername(), request.getEmail(), request.getRole());
         ApiFuture<WriteResult> result = db.collection("users").document(uid).set(user);
         result.get(); // wait for save
+
+        // Create specific profiles
+        String role = request.getRole();
+        if (role != null && (role.equalsIgnoreCase("Driver") || role.equalsIgnoreCase("ROLE_DRIVER"))) {
+            if (request.getLicenseNumber() == null || request.getVehicleNumber() == null) {
+                FirebaseAuth.getInstance().deleteUser(uid);
+                db.collection("users").document(uid).delete();
+                throw new Exception("Driver registration requires licenseNumber and vehicleNumber.");
+            }
+            Map<String, Object> driverData = new HashMap<>();
+            driverData.put("fullName", request.getFullName());
+            driverData.put("licenseNumber", request.getLicenseNumber());
+            driverData.put("vehicleNumber", request.getVehicleNumber());
+            driverData.put("phoneNumber", request.getPhoneNumber());
+            db.collection("drivers").document(uid).set(driverData).get();
+        } else if (role != null && (role.equalsIgnoreCase("Parent") || role.equalsIgnoreCase("ROLE_PARENT") || role.equalsIgnoreCase("Student") || role.equalsIgnoreCase("ROLE_STUDENT"))) {
+            // Note: The prompt explicitly asked to create 'parents' collection for 'Parent' role. 
+            // In earlier examples user used 'Student', I am applying 'parents' generic profile mapping
+            if (role.equalsIgnoreCase("Parent") || role.equalsIgnoreCase("ROLE_PARENT")) {
+                if (request.getHomeAddress() == null) {
+                    FirebaseAuth.getInstance().deleteUser(uid);
+                    db.collection("users").document(uid).delete();
+                    throw new Exception("Parent registration requires a home address.");
+                }
+                Map<String, Object> parentData = new HashMap<>();
+                parentData.put("fullName", request.getFullName());
+                parentData.put("homeAddress", request.getHomeAddress());
+                parentData.put("phoneNumber", request.getPhoneNumber());
+                db.collection("parents").document(uid).set(parentData).get();
+            }
+        }
 
         try {
             // Generate email verification link
@@ -105,6 +138,10 @@ public class AuthService {
             User user = document.toObject(User.class);
             if (user == null || user.getRole() == null) {
                 throw new Exception("User role is missing or invalid in Firestore.");
+            }
+
+            if (!user.getRole().equals(request.getExpectedRole())) {
+                throw new Exception("Unauthorized: This account is not a " + request.getExpectedRole());
             }
 
             // Generate backend JWT which frontend uses to determine dashboard
