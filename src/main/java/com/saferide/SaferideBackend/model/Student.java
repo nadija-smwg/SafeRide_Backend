@@ -8,6 +8,7 @@ public class Student {
     private String emergencyContact;
     private String parentEmail;
     private String parentFcmToken;
+    private String currentStatus; // AT_HOME, PICKED_UP, DROPPED_OFF
 
     //Default constructor is crucial for Firebase and JSON parsing!
     //Firebase / Spring / JSON libraries,frameworks like this need this to create objects automatically
@@ -25,6 +26,7 @@ public class Student {
         this.emergencyContact = emergencyContact;
         this.parentEmail = parentEmail;
         this.parentFcmToken = parentFcmToken; //for push notifications ( FB cloud messaging)
+        this.currentStatus = "AT_HOME"; // Initial status
     }
 
     public String getStudentId() { return studentId; }
@@ -47,6 +49,9 @@ public class Student {
 
     public String getParentFcmToken() { return parentFcmToken; }
     public void setParentFcmToken(String parentFcmToken) { this.parentFcmToken = parentFcmToken; }
+
+    public String getCurrentStatus() { return currentStatus; }
+    public void setCurrentStatus(String currentStatus) { this.currentStatus = currentStatus; }
 }
 
 //QR code contains studentID, backend receives it,fetch student from DB and hold data

@@ -30,40 +30,64 @@ public class ScanController {
     @Autowired
     private AttendanceService attendanceService;
 
-    @PostMapping("/pickup/{studentId}") //endpoint POST /api/scan/pickup/STU-1234
-    public ResponseEntity<?> scanPickup(@PathVariable String studentId) { //get studentId from URL
-        // 1. Fetch student from Firebase(calls Firestore and gets Student object)
-        Student student = studentService.getStudentById(studentId);
-        if (student == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Student not found in Firebase with ID: " + studentId); //404 Not Found
+    @PostMapping("/pickup/{studentId}")
+    //PathVariable- Extract student ID from URL and Optional query params for trip and location
+    public ResponseEntity<?> scanPickup(@PathVariable String studentId, @RequestParam String tripId, @RequestParam(required = false) Double lat, @RequestParam(required = false) Double lon) {
+        try {
+            Student student = studentService.getStudentById(studentId);
+            if (student == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Student not found: " + studentId);
+            }
+            //Create AttendanceRecord(unique record ID)
+            AttendanceRecord record = new AttendanceRecord(UUID.randomUUID().toString(), studentId, "PICKED_UP", tripId, lat, lon, false);
+            attendanceService.saveRecord(record);
+            notificationService.sendPickupNotification(student, lat, lon);
+            //Return response
+            return ResponseEntity.ok(record);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during pickup: " + e.getMessage());
         }
-
-        // 2. Create and Save Attendance Record in DB
-        AttendanceRecord record = new AttendanceRecord(UUID.randomUUID().toString(), studentId, "PICKUP"); //recordID random
-        attendanceService.saveRecord(record);
-
-        // 3. Notify parent
-        notificationService.sendPickupNotification(student);
-
-        return ResponseEntity.ok(record); //frontend receives JSON record
     }
 
-    @PostMapping("/dropoff/{studentId}") //endpoint POST /api/scan/dropoff/STU-1234
-    public ResponseEntity<?> scanDropoff(@PathVariable String studentId) {
-        // 1. Fetch student from Firebase
-        Student student = studentService.getStudentById(studentId);
-        if (student == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Student not found in Firebase with ID: " + studentId);
+    @PostMapping("/dropoff/{studentId}")
+    public ResponseEntity<?> scanDropoff(@PathVariable String studentId, @RequestParam String tripId, @RequestParam(required = false) Double lat, @RequestParam(required = false) Double lon) {
+        try {
+            Student student = studentService.getStudentById(studentId);
+            if (student == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Student not found: " + studentId);
+            }
+
+            AttendanceRecord record = new AttendanceRecord(UUID.randomUUID().toString(), studentId, "DROPPED_OFF", tripId, lat, lon, false);
+            attendanceService.saveRecord(record);
+            notificationService.sendDropoffNotification(student, lat, lon);
+
+            return ResponseEntity.ok(record);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during dropoff: " + e.getMessage());
         }
+    }
 
-        // 2. Create and Save Attendance Record
-        AttendanceRecord record = new AttendanceRecord(UUID.randomUUID().toString(), studentId, "DROPOFF");
-        attendanceService.saveRecord(record);
+    @PostMapping("/manual")
+    public ResponseEntity<?> scanManual(@RequestParam String studentId, @RequestParam String status, @RequestParam String tripId, @RequestParam(required = false) Double lat, @RequestParam(required = false) Double lon) {
+        try {
+            Student student = studentService.getStudentById(studentId);
+            if (student == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Student not found: " + studentId);
+            }
 
-        // 3. Notify parent
-        notificationService.sendDropoffNotification(student);
+            AttendanceRecord record = new AttendanceRecord(UUID.randomUUID().toString(), studentId, status, tripId, lat, lon, true);
+            attendanceService.saveRecord(record);
+            
+            if ("PICKED_UP".equals(status)) {
+                notificationService.sendPickupNotification(student, lat, lon);
+            } else {
+                notificationService.sendDropoffNotification(student, lat, lon);
+            }
 
-        return ResponseEntity.ok(record);
+            return ResponseEntity.ok(record);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during manual attendance: " + e.getMessage());
+        }
     }
 
     //generate QR API

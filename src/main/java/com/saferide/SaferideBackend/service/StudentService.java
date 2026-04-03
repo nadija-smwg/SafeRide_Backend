@@ -87,13 +87,63 @@ public class StudentService { //for all student database operations
             return null;
         }
     }
+
+    // ─── UPDATE STATUS ───────────────────────────────────────────────────
+    public void updateStudentStatus(String studentId, String status) {
+        Firestore db = FirestoreClient.getFirestore();
+        try {
+            //Update currentStatus field in Firestore(called by attendanceservice and change the status.)
+            db.collection(COLLECTION_NAME).document(java.util.Objects.requireNonNull(studentId)).update("currentStatus", status).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Error updating student status: " + e.getMessage());
+        }
+    }
+
+    // ─── GET Students BY STATUS ───────────────────────────────────────────────────
+    public List<Student> getStudentsByStatus(String status) {
+        Firestore db = FirestoreClient.getFirestore();
+        try {
+            //Query Firestore
+            QuerySnapshot querySnapshot = db.collection(COLLECTION_NAME)
+                    .whereEqualTo("currentStatus", status)
+                    .get().get();
+            List<Student> students = new ArrayList<>();
+            //Convert documents to Student objects
+            for (QueryDocumentSnapshot doc : querySnapshot.getDocuments()) {
+                students.add(doc.toObject(Student.class));
+            }
+            return students;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Error fetching students by status: " + e.getMessage());
+        }
+    }
+
+    // ─── GET Students BY PARENT EMAIL ──────────────────────────────────────────────
+    public List<Student> getStudentsByParentEmail(String parentEmail) {
+        Firestore db = FirestoreClient.getFirestore();
+        try {
+            //Query Firestore by parent email
+            QuerySnapshot querySnapshot = db.collection(COLLECTION_NAME)
+                    .whereEqualTo("parentEmail", parentEmail)
+                    .get().get();
+            List<Student> students = new ArrayList<>();
+            //Convert documents to Student objects.
+            for (QueryDocumentSnapshot doc : querySnapshot.getDocuments()) {
+                students.add(doc.toObject(Student.class));
+            }
+            return students;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Error fetching students by parent email: " + e.getMessage());
+        }
+    }
 }
 //documentsnapshot
-//students
-// ├── STU-1234
-//      name: "Kamal"
-//      email: "parent@gmail.com"
-
+//students (collection)
+// ├── STU-1234 (document)
+// │      studentId: "STU-1234"
+// │      studentName: "Kamal"
+// │      parentEmail: "parent@gmail.com"
+// │      currentStatus: "AT_HOME"
 // ├── STU-XY98KL76
 
 //DB logics only

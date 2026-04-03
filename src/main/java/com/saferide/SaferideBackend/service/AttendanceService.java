@@ -1,7 +1,9 @@
 package com.saferide.SaferideBackend.service;
 
 import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.WriteResult;
 import com.google.firebase.cloud.FirestoreClient;
 import com.saferide.SaferideBackend.model.AttendanceRecord;
@@ -16,20 +18,45 @@ public class AttendanceService {
     private static final String COLLECTION_NAME = "attendance";
 
     public String saveRecord(AttendanceRecord record) {
-        Firestore dbFirestore = FirestoreClient.getFirestore(); //getting firestore instance(Connects to Firebase Firestore,Uses serviceAccountKey.json)
+        Firestore dbFirestore = FirestoreClient.getFirestore();
 
-        // We use the recordId generated within AttendanceRecord as the document ID(without DOC ID cannot store properly)
-        String recordId = java.util.Objects.requireNonNull(record.getRecordId(), "Record ID must not be null");
-        //saving data to Firestore
-        ApiFuture<WriteResult> collectionsApiFuture = dbFirestore.collection(COLLECTION_NAME).document(recordId).set(record);
-        //ApiFuture<WriteResult>--- Save DB operation runs in background, Returns a "future result"
-        try {
-            return collectionsApiFuture.get().getUpdateTime().toString(); //Returns WriteResult and get Time when Firestore saved the record
+        // 1. Duplicate Scan Prevention (same student, same status, same trip, within 1 minute)
+        if (isDuplicateScan(record)) {
+            throw new RuntimeException("Duplicate scan detected for student: " + record.getStudentId());
         }
-        //Network issues,server shutting down or Firebase failure
-        catch (InterruptedException | ExecutionException e) {
-            System.err.println("Error saving attendance record " + record.getRecordId() + ": " + e.getMessage());
-            return null;
+
+        String recordId = java.util.Objects.requireNonNull(record.getRecordId(), "Record ID must not be null");
+        
+        try {
+            // 2. Save Attendance Record
+            ApiFuture<WriteResult> collectionsApiFuture = dbFirestore.collection(COLLECTION_NAME).document(recordId).set(record);
+            String updateTime = collectionsApiFuture.get().getUpdateTime().toString();
+
+            // 3. Update Student Status in Student Collection
+            DocumentReference studentRef = dbFirestore.collection("students").document(java.util.Objects.requireNonNull(record.getStudentId()));
+            studentRef.update("currentStatus", record.getStatus()).get();
+
+            return updateTime;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Error saving attendance record: " + e.getMessage());
+        }
+    }
+
+    private boolean isDuplicateScan(AttendanceRecord record) {
+        Firestore dbFirestore = FirestoreClient.getFirestore();
+        try {
+            // Check for records of same student, same trip, same status in the last 1 minute
+            long oneMinuteAgo = System.currentTimeMillis() - 60000;
+            QuerySnapshot querySnapshot = dbFirestore.collection(COLLECTION_NAME)
+                    .whereEqualTo("studentId", record.getStudentId())
+                    .whereEqualTo("status", record.getStatus())
+                    .whereEqualTo("tripId", record.getTripId())
+                    .whereGreaterThan("scanTime", new java.util.Date(oneMinuteAgo))
+                    .get().get();
+            
+            return !querySnapshot.isEmpty();
+        } catch (InterruptedException | ExecutionException e) {
+            return false;
         }
     }
 }

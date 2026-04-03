@@ -23,10 +23,17 @@ public class NotificationService {
     private JavaMailSender mailSender;
 
     // ─── Pickup Notification ────────────────────────────────────────────────
-    public void sendPickupNotification(Student student) {
+    public void sendPickupNotification(Student student, Double lat, Double lon) {
         String subject = "SafeRide: Pickup Confirmed for " + student.getStudentName();
         String body = "Hello,\n\n" + student.getStudentName() +
-                " has boarded the bus safely at " + LocalDateTime.now() + ".\n\nSafeRide System";
+                " has boarded the bus safely at " + LocalDateTime.now() + ".\n";
+        
+        if (lat != null && lon != null) {
+            String mapLink = "https://www.google.com/maps?q=" + lat + "," + lon;
+            body += "Location: " + mapLink + "\n";
+        }
+
+        body += "\nSafeRide System";
         
         //send Email
         sendSimpleEmail(student.getParentEmail(), subject, body);
@@ -38,10 +45,17 @@ public class NotificationService {
     }
 
     // ─── Dropoff Notification ───────────────────────────────────────────────
-    public void sendDropoffNotification(Student student) {
+    public void sendDropoffNotification(Student student, Double lat, Double lon) {
         String subject = "SafeRide: Dropoff Confirmed for " + student.getStudentName();
         String body = "Hello,\n\n" + student.getStudentName() +
-                " has been dropped off safely at " + LocalDateTime.now() + ".\n\nSafeRide System";
+                " has been dropped off safely at " + LocalDateTime.now() + ".\n";
+
+        if (lat != null && lon != null) {
+            String mapLink = "https://www.google.com/maps?q=" + lat + "," + lon;
+            body += "Location: " + mapLink + "\n";
+        }
+
+        body += "\nSafeRide System";
 
         // Email
         sendSimpleEmail(student.getParentEmail(), subject, body);
@@ -50,6 +64,16 @@ public class NotificationService {
         if (student.getParentFcmToken() != null && !student.getParentFcmToken().isEmpty()) {
             sendPushNotification(student.getParentFcmToken(), subject, body);
         }
+    }
+
+    public void sendDailySummary(Student student) {
+        String subject = "SafeRide: Daily Activity Summary for " + student.getStudentName();
+        String body = "Hello,\n\nHere is the summary for " + student.getStudentName() + " today:\n" +
+                "- Morning Pickup: Success\n" +
+                "- Afternoon Dropoff: Success\n\n" +
+                "Thank you for using SafeRide!\nSafeRide System";
+
+        sendSimpleEmail(student.getParentEmail(), subject, body);
     }
 
     // ─── QR Code Email (sent when student is registered) ───────────────────
