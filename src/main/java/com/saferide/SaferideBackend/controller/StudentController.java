@@ -30,7 +30,9 @@ public class StudentController {
     // Registers a new student, saves to Firestore,
     // generates QR code, and emails it to the parent
     @PostMapping("/add")
-    public ResponseEntity<Map<String, String>> addStudent(@RequestBody Student student) { //frontend sends JSON,Spring converts it to Student object
+    public ResponseEntity<Map<String, String>> addStudent(@RequestBody Student student) { // frontend sends JSON,Spring
+                                                                                          // converts it to Student
+                                                                                          // object
         // 1. Save student to Firestore — returns the auto-generated studentId if needed
         String studentId = studentService.saveStudent(student);
 
@@ -39,10 +41,12 @@ public class StudentController {
                     .body(Map.of("error", "Failed to save student to database."));
         }
 
-        // 2. Reload the saved student to get the assigned studentId(QR generation needs studentId)
+        // 2. Reload the saved student to get the assigned studentId(QR generation needs
+        // studentId)
         student.setStudentId(studentId);
 
-        // 3. Generate the QR code for this student(studentId to QR image to Base64 string)
+        // 3. Generate the QR code for this student(studentId to QR image to Base64
+        // string)
         String qrCodeBase64 = qrCodeService.generateQRCodeBase64(studentId);
 
         // 4. Email the QR code to the parent
@@ -64,7 +68,7 @@ public class StudentController {
         if (student == null) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(student); //returns full student details
+        return ResponseEntity.ok(student); // returns full student details
     }
 
     // ─── GET /api/students/all ──────────────────────────────────────────────
@@ -99,7 +103,6 @@ public class StudentController {
         return ResponseEntity.ok(Map.of(
                 "studentId", studentId,
                 "studentName", student.getStudentName(),
-                "qrCode", qrCodeBase64
-        ));
+                "qrCode", qrCodeBase64));
     }
 }

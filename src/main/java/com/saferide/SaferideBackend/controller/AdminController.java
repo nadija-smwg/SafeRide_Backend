@@ -24,28 +24,28 @@ public class AdminController {
     public ResponseEntity<?> getDashboardStats() {
         Firestore db = FirestoreClient.getFirestore();
         try {
-            //fetches all student documents and counts them
+            // fetches all student documents and counts them
             long totalStudents = studentService.getAllStudents().size();
-            
+
             // For simplicity, we count records from today in the attendance collection
             // In a production app, we would use a more efficient query or indexed counter
             QuerySnapshot todayAttendance = db.collection("attendance")
                     .whereGreaterThan("scanTime", java.util.Objects.requireNonNull(getStartOfToday()))
                     .get().get();
-            
+
             long attendanceCount = todayAttendance.size();
-            
+
             QuerySnapshot activeTrips = db.collection("trips")
                     .whereEqualTo("status", "ONGOING")
                     .get().get();
-            //Active trips count
+            // Active trips count?
             long activeTripCount = activeTrips.size();
 
             Map<String, Object> stats = new HashMap<>();
             stats.put("totalStudents", totalStudents);
             stats.put("todayAttendanceCount", attendanceCount);
             stats.put("activeTrips", activeTripCount);
-            //Return JSON stats
+            // Return JSON stats
             return ResponseEntity.ok(stats);
         } catch (InterruptedException | ExecutionException e) {
             return ResponseEntity.internalServerError().body("Error fetching dashboard stats: " + e.getMessage());
@@ -59,7 +59,8 @@ public class AdminController {
         cal.set(java.util.Calendar.SECOND, 0);
         cal.set(java.util.Calendar.MILLISECOND, 0);
         return cal.getTime();
-        //Resets current time to 00:00:00,useful for querying Firestore for “today” records.
+        // Resets current time to 00:00:00,useful for querying Firestore for “today”
+        // records.
     }
 
     @GetMapping("/history/student/{studentId}")
@@ -71,7 +72,7 @@ public class AdminController {
                     .orderBy("scanTime", com.google.cloud.firestore.Query.Direction.DESCENDING)
                     .get().get();
 
-            //Converts Firestore documents to generic maps (Map<String,Object>)
+            // Converts Firestore documents to generic maps (Map<String,Object>)
             return ResponseEntity.ok(history.toObjects(Map.class));
         } catch (InterruptedException | ExecutionException e) {
             return ResponseEntity.internalServerError().body("Error fetching history: " + e.getMessage());
@@ -82,7 +83,7 @@ public class AdminController {
     public ResponseEntity<?> getAllTripHistory() {
         Firestore db = FirestoreClient.getFirestore();
         try {
-            //Fetch all trips, ordered by startTime descending
+            // Fetch all trips, ordered by startTime descending
             QuerySnapshot trips = db.collection("trips")
                     .orderBy("startTime", com.google.cloud.firestore.Query.Direction.DESCENDING)
                     .get().get();
@@ -96,7 +97,7 @@ public class AdminController {
     public ResponseEntity<?> getDriverTripHistory(@PathVariable String driverId) {
         Firestore db = FirestoreClient.getFirestore();
         try {
-            //Query trips by driverId
+            // Query trips by driverId
             QuerySnapshot trips = db.collection("trips")
                     .whereEqualTo("driverId", driverId)
                     .orderBy("startTime", com.google.cloud.firestore.Query.Direction.DESCENDING)

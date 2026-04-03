@@ -20,20 +20,23 @@ public class AttendanceService {
     public String saveRecord(AttendanceRecord record) {
         Firestore dbFirestore = FirestoreClient.getFirestore();
 
-        // 1. Duplicate Scan Prevention (same student, same status, same trip, within 1 minute)
+        // 1. Duplicate Scan Prevention (same student, same status, same trip, within 1
+        // minute)
         if (isDuplicateScan(record)) {
             throw new RuntimeException("Duplicate scan detected for student: " + record.getStudentId());
         }
 
         String recordId = java.util.Objects.requireNonNull(record.getRecordId(), "Record ID must not be null");
-        
+
         try {
             // 2. Save Attendance Record
-            ApiFuture<WriteResult> collectionsApiFuture = dbFirestore.collection(COLLECTION_NAME).document(recordId).set(record);
+            ApiFuture<WriteResult> collectionsApiFuture = dbFirestore.collection(COLLECTION_NAME).document(recordId)
+                    .set(record);
             String updateTime = collectionsApiFuture.get().getUpdateTime().toString();
 
             // 3. Update Student Status in Student Collection
-            DocumentReference studentRef = dbFirestore.collection("students").document(java.util.Objects.requireNonNull(record.getStudentId()));
+            DocumentReference studentRef = dbFirestore.collection("students")
+                    .document(java.util.Objects.requireNonNull(record.getStudentId()));
             studentRef.update("currentStatus", record.getStatus()).get();
 
             return updateTime;
@@ -45,7 +48,8 @@ public class AttendanceService {
     private boolean isDuplicateScan(AttendanceRecord record) {
         Firestore dbFirestore = FirestoreClient.getFirestore();
         try {
-            // Check for records of same student, same trip, same status in the last 1 minute
+            // Check for records of same student, same trip, same status in the last 1
+            // minute
             long oneMinuteAgo = System.currentTimeMillis() - 60000;
             QuerySnapshot querySnapshot = dbFirestore.collection(COLLECTION_NAME)
                     .whereEqualTo("studentId", record.getStudentId())
@@ -53,7 +57,7 @@ public class AttendanceService {
                     .whereEqualTo("tripId", record.getTripId())
                     .whereGreaterThan("scanTime", new java.util.Date(oneMinuteAgo))
                     .get().get();
-            
+
             return !querySnapshot.isEmpty();
         } catch (InterruptedException | ExecutionException e) {
             return false;
@@ -61,13 +65,13 @@ public class AttendanceService {
     }
 }
 
-//Input: AttendanceRecord object...Output: timestamp (String)
-//AttendanceRecord gets saved into Firestore.(collection)
-//attendance
+// Input: AttendanceRecord object...Output: timestamp (String)
+// AttendanceRecord gets saved into Firestore.(collection)
+// attendance
 // ├── record1
-//      ├── studentId: S001
-//      ├── status: PICKED_UP
-//      ├── scanTime: 2026-03-21 08:30
+// ├── studentId: S001
+// ├── status: PICKED_UP
+// ├── scanTime: 2026-03-21 08:30
 // ├── record2
 // ├── record3
-//Firestore automatically converts:AttendanceRecord → JSON-like document
+// Firestore automatically converts:AttendanceRecord → JSON-like document
