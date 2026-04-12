@@ -81,6 +81,12 @@ public class AuthService {
                 parentData.put("fullName", request.getFullName());
                 parentData.put("homeAddress", request.getHomeAddress());
                 parentData.put("phoneNumber", request.getPhoneNumber());
+                
+                java.util.List<com.saferide.SaferideBackend.models.LocationObject> defaultLocations = new java.util.ArrayList<>();
+                defaultLocations.add(new com.saferide.SaferideBackend.models.LocationObject("home", "Home", 0.0, 0.0, request.getHomeAddress()));
+                defaultLocations.add(new com.saferide.SaferideBackend.models.LocationObject("school", "School", 0.0, 0.0, ""));
+                parentData.put("savedLocations", defaultLocations);
+                
                 db.collection("parents").document(uid).set(parentData).get();
             }
         }

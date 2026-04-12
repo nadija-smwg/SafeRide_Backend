@@ -76,4 +76,23 @@ public class DriverDashboardController {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
+    @GetMapping("/drivers/{driverId}/profile")
+    public ResponseEntity<?> getDriverProfile(@PathVariable String driverId) {
+        try {
+            Driver driver = driverService.getDriverProfile(driverId);
+            return ResponseEntity.ok(driver);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/drivers/{driverId}/profile")
+    public ResponseEntity<?> updateDriverProfile(@PathVariable String driverId, @RequestBody Driver driverData) {
+        try {
+            driverService.updateDriverProfile(driverId, driverData);
+            return ResponseEntity.ok("Profile updated successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
 }

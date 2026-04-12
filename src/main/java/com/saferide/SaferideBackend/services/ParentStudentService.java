@@ -32,12 +32,18 @@ public class ParentStudentService {
         student.setHomeAddress(request.getHomeAddress());
         student.setSchoolAddress(request.getSchoolAddress());
         
-        // initialize default schedule with Home
-        String parentHome = getParentHomeAddress(parentId, db);
+        // initialize default schedule with LocationObjects
+        com.saferide.SaferideBackend.models.LocationObject homeLoc = new com.saferide.SaferideBackend.models.LocationObject("home", "Home", student.getHomeLat(), student.getHomeLng(), student.getHomeAddress());
+        com.saferide.SaferideBackend.models.LocationObject schoolLoc = new com.saferide.SaferideBackend.models.LocationObject("school", "School", student.getSchoolLat(), student.getSchoolLng(), student.getSchoolAddress());
+
         List<ScheduleItem> defaultSchedule = new ArrayList<>();
         String[] days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
         for (String day : days) {
-            defaultSchedule.add(new ScheduleItem(day, parentHome, parentHome, true));
+            defaultSchedule.add(new ScheduleItem(
+                day, 
+                homeLoc, schoolLoc, true, // morning: Home -> School, pickup needed
+                schoolLoc, homeLoc, true  // evening: School -> Home, pickup needed
+            ));
         }
         student.setWeeklySchedule(defaultSchedule);
         
@@ -98,5 +104,31 @@ public class ParentStudentService {
             return doc.getData();
         }
         throw new RuntimeException("Driver not found");
+    }
+
+    public void deleteStudent(String studentId) throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+        db.collection("students").document(studentId).delete().get();
+    }
+
+    public com.saferide.SaferideBackend.models.Parent getParentProfile(String parentId) throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentSnapshot doc = db.collection("parents").document(parentId).get().get();
+        if (doc.exists()) {
+            com.saferide.SaferideBackend.models.Parent parent = doc.toObject(com.saferide.SaferideBackend.models.Parent.class);
+            parent.setId(parentId);
+            return parent;
+        }
+        return new com.saferide.SaferideBackend.models.Parent();
+    }
+
+    public void updateParentProfile(String parentId, com.saferide.SaferideBackend.models.Parent updateData) throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+        java.util.Map<String, Object> updates = new java.util.HashMap<>();
+        if (updateData.getFullName() != null) updates.put("fullName", updateData.getFullName());
+        if (updateData.getPhoneNumber() != null) updates.put("phoneNumber", updateData.getPhoneNumber());
+        if (updateData.getHomeAddress() != null) updates.put("homeAddress", updateData.getHomeAddress());
+        
+        db.collection("parents").document(parentId).set(updates, SetOptions.merge()).get();
     }
 }

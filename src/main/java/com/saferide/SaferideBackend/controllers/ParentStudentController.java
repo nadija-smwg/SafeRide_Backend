@@ -77,4 +77,33 @@ public class ParentStudentController {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
+    @DeleteMapping("/{studentId}")
+    public ResponseEntity<?> deleteStudent(@PathVariable String studentId) {
+        try {
+            parentStudentService.deleteStudent(studentId);
+            return ResponseEntity.ok("Student removed effectively.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/profile/{parentId}")
+    public ResponseEntity<?> getParentProfile(@PathVariable String parentId) {
+        try {
+            com.saferide.SaferideBackend.models.Parent parent = parentStudentService.getParentProfile(parentId);
+            return ResponseEntity.ok(parent);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/profile/{parentId}")
+    public ResponseEntity<?> updateParentProfile(@PathVariable String parentId, @RequestBody com.saferide.SaferideBackend.models.Parent parentData) {
+        try {
+            parentStudentService.updateParentProfile(parentId, parentData);
+            return ResponseEntity.ok("Profile updated successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
 }

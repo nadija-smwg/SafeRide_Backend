@@ -69,4 +69,25 @@ public class DriverDashboardService {
         }
         return new Driver();
     }
+    public Driver getDriverProfile(String driverId) throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentSnapshot doc = db.collection("drivers").document(driverId).get().get();
+        if (doc.exists()) {
+            Driver driver = doc.toObject(Driver.class);
+            driver.setId(driverId);
+            return driver;
+        }
+        return new Driver();
+    }
+
+    public void updateDriverProfile(String driverId, Driver updateData) throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+        Map<String, Object> updates = new java.util.HashMap<>();
+        if (updateData.getFullName() != null) updates.put("fullName", updateData.getFullName());
+        if (updateData.getPhoneNumber() != null) updates.put("phoneNumber", updateData.getPhoneNumber());
+        if (updateData.getLicenseNumber() != null) updates.put("licenseNumber", updateData.getLicenseNumber());
+        if (updateData.getVehicleNumber() != null) updates.put("vehicleNumber", updateData.getVehicleNumber());
+        
+        db.collection("drivers").document(driverId).set(updates, SetOptions.merge()).get();
+    }
 }
