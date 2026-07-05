@@ -17,12 +17,21 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
 
+  final DriverService _driverService = DriverService();
+  String? _driverId;
+
+  // Session mode: "NONE", "MORNING", or "AFTERNOON"
+  String _activeSessionMode = "NONE";
+  bool _isLoadingSession = true;
+  bool _isTogglingSession = false;
+
   @override
   void initState() {
     super.initState();
     _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic);
     _animController.forward();
+    _loadSessionMode();
   }
 
   @override
@@ -31,8 +40,54 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
     super.dispose();
   }
 
+  Future<void> _loadSessionMode() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    _driverId = prefs.getString('uid');
+    if (_driverId != null) {
+      String? mode = await _driverService.getSessionMode(_driverId!);
+      if (mounted) {
+        setState(() {
+          _activeSessionMode = mode ?? "NONE";
+          _isLoadingSession = false;
+        });
+      }
+    } else {
+      if (mounted) setState(() => _isLoadingSession = false);
+    }
+  }
+
+  Future<void> _toggleSession(String mode) async {
+    if (_isTogglingSession || _driverId == null) return;
+    setState(() => _isTogglingSession = true);
+
+    // If the same mode is already active, turn it off
+    String newMode = (_activeSessionMode == mode) ? "NONE" : mode;
+
+    bool success = await _driverService.setSessionMode(_driverId!, newMode);
+    if (mounted) {
+      if (success) {
+        setState(() {
+          _activeSessionMode = newMode;
+          _isTogglingSession = false;
+        });
+      } else {
+        setState(() => _isTogglingSession = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Failed to update session mode."),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    bool isMorningActive = _activeSessionMode == "MORNING";
+    bool isAfternoonActive = _activeSessionMode == "AFTERNOON";
+    bool noSessionActive = _activeSessionMode == "NONE";
+
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {
@@ -125,28 +180,52 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
                           ),
                         ],
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
+
+                      // ── Session Mode Status Banner ──
+                      _buildSessionStatusBanner(isMorningActive, isAfternoonActive),
+
+                      const SizedBox(height: 28),
                       const Text(
                         "Route Sessions",
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF64748B), letterSpacing: 0.5),
                       ),
+                      const SizedBox(height: 6),
+                      Text(
+                        noSessionActive
+                            ? "Enable a session to start pickup or dropoff"
+                            : isMorningActive
+                                ? "Morning session is active"
+                                : "Afternoon session is active",
+                        style: TextStyle(fontSize: 13, color: Colors.blueGrey.shade400),
+                      ),
                       const SizedBox(height: 16),
-                      _buildModeCard(
+
+                      // ── Morning Session Card with Toggle ──
+                      _buildSessionCard(
                         context,
                         title: "Morning Pickup",
                         description: "Standard morning route",
                         icon: Icons.wb_sunny_rounded,
                         accentColor: const Color(0xFFF59E0B),
+                        isActive: isMorningActive,
+                        isDisabled: isAfternoonActive,
                         isPickup: true,
+                        onToggle: () => _toggleSession("MORNING"),
                       ),
                       const SizedBox(height: 16),
-                      _buildModeCard(
+
+                      // ── Afternoon Session Card with Toggle ──
+                      _buildSessionCard(
                         context,
                         title: "Afternoon Dropoff",
                         description: "Standard dropoff route",
                         icon: Icons.nights_stay_rounded,
                         accentColor: const Color(0xFF6366F1),
+                        isActive: isAfternoonActive,
+                        isDisabled: isMorningActive,
                         isPickup: false,
+                        onToggle: () => _toggleSession("AFTERNOON"),
                       ),
                       const SizedBox(height: 100),
                     ],
@@ -184,6 +263,233 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
     );
   }
 
+  // ── Session Status Banner ──
+  Widget _buildSessionStatusBanner(bool isMorningActive, bool isAfternoonActive) {
+    if (_isLoadingSession) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+            SizedBox(width: 12),
+            Text("Loading session state...", style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
+    Color bannerColor;
+    IconData bannerIcon;
+    String bannerText;
+
+    if (isMorningActive) {
+      bannerColor = const Color(0xFFF59E0B);
+      bannerIcon = Icons.wb_sunny_rounded;
+      bannerText = "Morning Session Active";
+    } else if (isAfternoonActive) {
+      bannerColor = const Color(0xFF6366F1);
+      bannerIcon = Icons.nights_stay_rounded;
+      bannerText = "Afternoon Session Active";
+    } else {
+      bannerColor = const Color(0xFF94A3B8);
+      bannerIcon = Icons.power_settings_new_rounded;
+      bannerText = "No Session Active";
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [bannerColor.withOpacity(0.15), bannerColor.withOpacity(0.05)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: bannerColor.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: bannerColor.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(bannerIcon, color: bannerColor, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  bannerText,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: bannerColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isMorningActive || isAfternoonActive
+                      ? "Student statuses can be changed"
+                      : "Enable a session to change statuses",
+                  style: TextStyle(fontSize: 12, color: bannerColor.withOpacity(0.7)),
+                ),
+              ],
+            ),
+          ),
+          if (isMorningActive || isAfternoonActive)
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.green,
+                boxShadow: [
+                  BoxShadow(color: Colors.green.withOpacity(0.4), blurRadius: 6),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ── Session Card with Toggle ──
+  Widget _buildSessionCard(BuildContext context, {
+    required String title,
+    required String description,
+    required IconData icon,
+    required Color accentColor,
+    required bool isActive,
+    required bool isDisabled,
+    required bool isPickup,
+    required VoidCallback onToggle,
+  }) {
+    // Card is only tappable when this session is active
+    bool canNavigate = isActive;
+    double opacity = isDisabled ? 0.45 : 1.0;
+
+    return AnimatedOpacity(
+      opacity: opacity,
+      duration: const Duration(milliseconds: 300),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: isActive
+                  ? accentColor.withOpacity(0.15)
+                  : Colors.blueGrey.withOpacity(0.08),
+              blurRadius: isActive ? 20 : 15,
+              offset: const Offset(0, 8),
+            )
+          ],
+          border: Border.all(
+            color: isActive ? accentColor.withOpacity(0.5) : Colors.grey.shade200,
+            width: isActive ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            // Top row: icon + info + toggle
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: accentColor.withOpacity(isDisabled ? 0.05 : 0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(icon, color: isDisabled ? Colors.grey : accentColor, size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isDisabled ? Colors.grey : const Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        isActive
+                            ? "Session active — tap to open"
+                            : isDisabled
+                                ? "Disabled while other session is active"
+                                : description,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isActive
+                              ? accentColor
+                              : isDisabled
+                                  ? Colors.grey.shade400
+                                  : const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Toggle switch
+                _isTogglingSession
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Switch(
+                        value: isActive,
+                        onChanged: isDisabled ? null : (_) => onToggle(),
+                        activeColor: accentColor,
+                        activeTrackColor: accentColor.withOpacity(0.3),
+                      ),
+              ],
+            ),
+
+            // Navigate button when active
+            if (canNavigate) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => RouteListScreen(isPickup: isPickup)),
+                    );
+                  },
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                  label: Text(isPickup ? "Open Pickup Route" : "Open Dropoff Route"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: accentColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildProfileMenu(BuildContext context) {
     return PopupMenuButton<String>(
       icon: const Icon(Icons.account_circle_rounded, color: Colors.white, size: 36, shadows: [Shadow(color: Colors.black45, blurRadius: 4)]),
@@ -193,6 +499,10 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
         if (value == 'profile') {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const DriverProfileScreen()));
         } else if (value == 'logout') {
+          // Clear session mode on logout
+          if (_driverId != null) {
+            await _driverService.setSessionMode(_driverId!, "NONE");
+          }
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.remove('uid');
           await prefs.remove('role');
@@ -223,77 +533,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildModeCard(BuildContext context, {
-    required String title,
-    required String description,
-    required IconData icon,
-    required Color accentColor,
-    required bool isPickup,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => RouteListScreen(isPickup: isPickup)));
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.blueGrey.withOpacity(0.08),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
-              )
-            ],
-            border: Border.all(color: Colors.grey.shade200, width: 1),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: accentColor, size: 28),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF94A3B8), size: 16),
-              )
-            ],
-          ),
-        ),
-      ),
     );
   }
 

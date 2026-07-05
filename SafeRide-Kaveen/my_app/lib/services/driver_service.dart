@@ -78,6 +78,29 @@ class DriverService {
     }
   }
 
+  Future<bool> setSessionMode(String driverId, String mode) async {
+    try {
+      final response = await http.put(Uri.parse("$endpoint/drivers/$driverId/session-mode?mode=$mode"));
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Session mode error: $e");
+      return false;
+    }
+  }
+
+  Future<String?> getSessionMode(String driverId) async {
+    try {
+      final response = await http.get(Uri.parse("$endpoint/drivers/$driverId/session-mode"));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['activeSessionMode'];
+      }
+    } catch (e) {
+      print("Get session mode error: $e");
+    }
+    return null;
+  }
+
   Future<Map<String, dynamic>?> getDriverLocation(String driverId) async {
     try {
       final response = await http.get(Uri.parse("$endpoint/drivers/$driverId/location"));

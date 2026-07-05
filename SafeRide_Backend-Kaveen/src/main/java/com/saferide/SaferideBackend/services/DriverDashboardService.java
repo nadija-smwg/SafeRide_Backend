@@ -44,6 +44,23 @@ public class DriverDashboardService {
             throw new RuntimeException("Student not found");
         }
         Student student = doc.toObject(Student.class);
+
+        // ── Validate session mode ──
+        String driverId = student.getAssignedDriverId();
+        if (driverId != null && !driverId.isEmpty()) {
+            String sessionMode = getSessionMode(driverId);
+            if (sessionMode == null || "NONE".equals(sessionMode)) {
+                throw new RuntimeException("No active session. Please enable a session mode before scanning.");
+            }
+            boolean isMorningSession = "MORNING".equals(sessionMode);
+            if (isPickup && !isMorningSession) {
+                throw new RuntimeException("Morning session is not active. Cannot perform pickup scan.");
+            }
+            if (!isPickup && isMorningSession) {
+                throw new RuntimeException("Afternoon session is not active. Cannot perform dropoff scan.");
+            }
+        }
+
         String currentStatus = student.getStatus();
         String newStatus = currentStatus;
 
@@ -57,6 +74,24 @@ public class DriverDashboardService {
         
         db.collection("students").document(studentId).update("status", newStatus).get();
         return newStatus;
+    }
+
+    // ── Session Mode Management ──
+
+    public void setSessionMode(String driverId, String mode) throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+        db.collection("drivers").document(driverId).set(
+                Map.of("activeSessionMode", mode), SetOptions.merge()
+        ).get();
+    }
+
+    public String getSessionMode(String driverId) throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentSnapshot doc = db.collection("drivers").document(driverId).get().get();
+        if (doc.exists() && doc.contains("activeSessionMode")) {
+            return doc.getString("activeSessionMode");
+        }
+        return null;
     }
 
     public void updateDriverLocation(String driverId, double latitude, double longitude) throws ExecutionException, InterruptedException {

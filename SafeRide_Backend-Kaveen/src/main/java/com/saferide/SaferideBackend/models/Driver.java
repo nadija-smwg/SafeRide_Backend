@@ -10,8 +10,12 @@ public class Driver {
     private String licenseNumber;
     private String vehicleNumber;
     private String profileImageBase64;
+    private String activeSessionMode; // null, "MORNING", or "AFTERNOON"
 
     public Driver() {}
+
+    public String getActiveSessionMode() { return activeSessionMode; }
+    public void setActiveSessionMode(String activeSessionMode) { this.activeSessionMode = activeSessionMode; }
 
     public String getProfileImageBase64() { return profileImageBase64; }
     public void setProfileImageBase64(String profileImageBase64) { this.profileImageBase64 = profileImageBase64; }

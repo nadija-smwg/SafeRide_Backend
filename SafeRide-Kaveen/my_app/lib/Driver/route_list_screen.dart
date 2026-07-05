@@ -46,7 +46,7 @@ class _RouteListScreenState extends State<RouteListScreen>
         widget.isPickup ? const Color(0xFFFF8C42) : const Color(0xFF5C6BC0);
     _accentLight =
         widget.isPickup ? const Color(0xFFFFF3E0) : const Color(0xFFE8EAF6);
-    _modeLabel = widget.isPickup ? 'Morning Pickup' : 'Afternoon Dropoff';
+    _modeLabel = widget.isPickup ? 'Morning Session' : 'Afternoon Session';
     _modeIcon = widget.isPickup ? Icons.wb_sunny_rounded : Icons.nights_stay_rounded;
 
     _pulseController = AnimationController(

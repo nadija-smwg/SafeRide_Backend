@@ -104,4 +104,24 @@ public class DriverDashboardController {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
+
+    @PutMapping("/drivers/{driverId}/session-mode")
+    public ResponseEntity<?> setSessionMode(@PathVariable String driverId, @RequestParam String mode) {
+        try {
+            driverService.setSessionMode(driverId, mode);
+            return ResponseEntity.ok("Session mode updated to: " + mode);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/drivers/{driverId}/session-mode")
+    public ResponseEntity<?> getSessionMode(@PathVariable String driverId) {
+        try {
+            String mode = driverService.getSessionMode(driverId);
+            return ResponseEntity.ok(java.util.Map.of("activeSessionMode", mode != null ? mode : "NONE"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
 }
